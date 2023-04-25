@@ -1,49 +1,63 @@
 require('dotenv').config();
+//const Datasource = require('./datasource');
 const MODULE_ID = 'assistant-datasource-mongo-provider';
 
 const { MongoClient, ServerApiVersion } = require('mongodb');
-const lodash = require('lodash');
 
 const uri = process.env.ASSISTANT_DATASOURCE_PROVIDER_URI;
 const dbName = process.env.ASSISTANT_DATASOURCE_PROVIDER_DB_NAME;
-let assistantDatasource = {};
+let client;
 
 const initByConfiguration = async (config) => {
   // TODO: HANDLE VALIDATION OF CONFIG
+  try {
+    client = new MongoClient(uri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverApi: ServerApiVersion.v1,
+    });
 
-  const client = new MongoClient(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    serverApi: ServerApiVersion.v1,
-  });
+    // TODO: HANDLE CONNECTION ERROR CORRECTLY
+    client.connect(function (err) {
+      if (err) {
+        throw new Error(err);
+      }
+    });
 
-  // TODO: HANDLE CONNECTION ERROR CORRECTLY
-  await client.connect(function (err) {
-    console.log('[NAVA]  :');
-    if (err) {
-      console.log('[NAVA] err :', err);
-      return;
+    if (!(client instanceof MongoClient)) {
+      throw new Error('Invalid MongoDB client instance');
     }
-    console.log('Connected successfully to server');
-  });
-
-  const db = client.db('Assistant');
-  const Z = await db.listCollections().toArray();
-  console.log('[NAVA] Z :', Z);
-  setAssistantDatasource(db);
+    await checkMongoDBConnection(client);
+  } catch (error) {
+    console.error(error);
+  }
 };
 
-const setAssistantDatasource = (db) => {
-  console.log('[NAVA] setAssistantDatasource db:', db);
-  assistantDatasource = {
-    executeCommand: async function (commandString) {
-      return await db.command(eval(commandString));
-    },
-  };
-};
+async function checkMongoDBConnection(client) {
+  try {
+    await client.db().admin().ping();
+    console.log('MongoDB server is running and accessible');
+  } catch (err) {
+    console.error(
+      'MongoDB server is not running or inaccessible:',
+      err.message
+    );
+  }
+}
 
-const getAssistantDatasource = () => {
-  return assistantDatasource;
-};
+async function runCommand(commandString) {
+  try {
+    const db = client.db(dbName);
+    const result = await db.command(eval(commandString));
+    console.log('Command executed:', result);
+    return 'Command executed';
+  } catch (err) {
+    if (err.code === 59) {
+      return 'Command executed';
+    } else {
+      console.error('Error running command:', err);
+    }
+  }
+}
 
-module.exports = { initByConfiguration, getAssistantDatasource };
+module.exports = { initByConfiguration, runCommand };

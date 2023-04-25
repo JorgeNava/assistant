@@ -1,15 +1,14 @@
 const MODULE_ID = 'whatsapp-api-express-routes-controller-receive-message';
 
-const ramda = require('ramda');
-const lodash = require('lodash');
 const axios = require('axios');
 
 const { naturalLanguageIntoQuery } = require('open-ai-service');
-const { getAssistantDatasource } = require('assistant-datasource-provider');
+const { runCommand } = require('assistant-datasource-provider');
 
 const receiveMessage = async (req, res) => {
   let body = req.body;
   const token = process.env.WHATSAPP_TOKEN;
+  let WHATSAPP_RESPONSE;
 
   try {
     if (req.body.object) {
@@ -49,11 +48,26 @@ const receiveMessage = async (req, res) => {
         };
         const RESPONSE = await naturalLanguageIntoQuery(PARAMS);
         const QUERY = RESPONSE?.content.replace(/\n/g, '');
-
         console.log('[NAVA] QUERY :', QUERY);
-        const DATASOURCE_RESPONSE =
-          await getAssistantDatasource().executeCommand(QUERY);
+        WHATSAPP_RESPONSE = `[INPUT]: ${QUERY}`;
+
+        await axios({
+          method: 'POST',
+          url: url,
+          data: {
+            messaging_product: 'whatsapp',
+            to: RECIPIENT_PHONE,
+            text: { body: WHATSAPP_RESPONSE },
+          },
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        const DATASOURCE_RESPONSE = await runCommand(QUERY);
         console.log('[NAVA] DATASOURCE_RESPONSE :', DATASOURCE_RESPONSE);
+
+        WHATSAPP_RESPONSE = `[OUTPUT]: ${
+          DATASOURCE_RESPONSE ? DATASOURCE_RESPONSE : 'An error occurred'
+        }`;
 
         // TODO: PASS AXIOS CALLS INTO SHARED PACKAGE
         await axios({
@@ -62,7 +76,7 @@ const receiveMessage = async (req, res) => {
           data: {
             messaging_product: 'whatsapp',
             to: RECIPIENT_PHONE,
-            text: { body: QUERY },
+            text: { body: WHATSAPP_RESPONSE },
           },
           headers: { 'Content-Type': 'application/json' },
         });

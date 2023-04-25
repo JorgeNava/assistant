@@ -10,9 +10,8 @@ const naturalLanguageIntoQuery = async (params) => {
       ['naturalQuery'],
       params
     );
-    //const NATURAL_QUERY = 'Find all documents where the "name" field equals "John"';
-    const PROMT = `Convert the following natural language query into a MongoDB query: "${NATURAL_QUERY}"\n\nMongoDB Query:`;
-
+    const PROMT = `As a MongoDB developer, write a query that convert the following natural language query into a MongoDB query using mandatorily the 'db.collection' function instead of using the shorthand notation 'db.<collectionName>': "${NATURAL_QUERY}"\n\nMongoDB Query:`;
+    console.log('[NAVA] PROMT :', PROMT);
     // TODO: SEPARTE THIS INTO INITIALIZATION AND SERVICE USE
     //const openaiApiKey = process.env.OPEN_AI_SERVICE_API_KEY;
     const configuration = new Configuration({
