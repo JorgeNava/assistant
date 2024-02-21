@@ -1,10 +1,11 @@
 const verifyWebhook = (req, res) => {
+  console.log('[NAVA] inside verifyWebhook');
   const verify_token = process.env.WHATSAPP_VERIFY_TOKEN;
-
-  let mode = req.query['hub.mode'];
-  let token = req.query['hub.verify_token'];
-  let challenge = req.query['hub.challenge'];
-
+  
+  let mode = req?.query['hub.mode'];
+  let token = req?.query['hub.verify_token'];
+  let challenge = req?.query['hub.challenge'];
+  
   if (mode && token) {
     if (mode === 'subscribe' && token === verify_token) {
       console.log('WEBHOOK_VERIFIED');
@@ -13,6 +14,7 @@ const verifyWebhook = (req, res) => {
       res.sendStatus(403);
     }
   }
+  res.sendStatus(403);
 };
 
 module.exports = {
