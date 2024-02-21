@@ -1,13 +1,4 @@
-const MODULE_ID = 'whatsapp-api-express-routes-controller-verify-webhook';
-
-const ramda = require('ramda');
-const lodash = require('lodash');
-
 const verifyWebhook = (req, res) => {
-  /**
-   * UPDATE YOUR VERIFY TOKEN
-   *This will be the Verify Token value when you set up webhook
-   **/
   const verify_token = process.env.WHATSAPP_VERIFY_TOKEN;
 
   let mode = req.query['hub.mode'];

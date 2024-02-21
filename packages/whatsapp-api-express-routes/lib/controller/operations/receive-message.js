@@ -1,12 +1,8 @@
-const MODULE_ID = 'whatsapp-api-express-routes-controller-receive-message';
-
 const axios = require('axios');
-
-const { naturalLanguageIntoQuery } = require('open-ai-service');
-const { runCommand } = require('assistant-datasource-provider');
+const AWS = require('aws-sdk');
+const lambda = new AWS.Lambda();
 
 const receiveMessage = async (req, res) => {
-  let body = req.body;
   const token = process.env.WHATSAPP_TOKEN;
   let WHATSAPP_RESPONSE;
 
@@ -43,33 +39,38 @@ const receiveMessage = async (req, res) => {
           3- GIVE CORRESPONDANT RESPONSE TO USER
         */
 
-        const PARAMS = {
-          naturalQuery: msg_body,
+        let params = {
+          FunctionName: 'NL2MongoServerless',
+          Payload: JSON.stringify({
+            query: msg_body
+          }),
         };
-        const RESPONSE = await naturalLanguageIntoQuery(PARAMS);
-        const QUERY = RESPONSE?.content.replace(/\n/g, '');
-        console.log('[NAVA] QUERY :', QUERY);
-        WHATSAPP_RESPONSE = `[INPUT]: ${QUERY}`;
 
-        await axios({
-          method: 'POST',
-          url: url,
-          data: {
-            messaging_product: 'whatsapp',
-            to: RECIPIENT_PHONE,
-            text: { body: WHATSAPP_RESPONSE },
-          },
-          headers: { 'Content-Type': 'application/json' },
+        let response = await lambda.invoke(params, (err, data) => {
+          if (err) {
+            console.error('Error al invocar la función Lambda NL2MongoServerless:', err);
+          } else {
+            console.log('Respuesta de la función Lambda NL2MongoServerless:', data);
+            return data;
+          }
         });
 
-        const DATASOURCE_RESPONSE = await runCommand(QUERY);
-        console.log('[NAVA] DATASOURCE_RESPONSE :', DATASOURCE_RESPONSE);
+        params = {
+          FunctionName: 'MongoManager',
+          Payload: JSON.stringify(response),
+        };
 
-        WHATSAPP_RESPONSE = `[OUTPUT]: ${
-          DATASOURCE_RESPONSE ? DATASOURCE_RESPONSE : 'An error occurred'
-        }`;
+        response = await lambda.invoke(params, (err, data) => {
+          if (err) {
+            console.error('Error al invocar la función Lambda MongoManager:', err);
+          } else {
+            console.log('Respuesta de la función Lambda MongoManager:', data);
+            return data;
+          }
+        });
 
-        // TODO: PASS AXIOS CALLS INTO SHARED PACKAGE
+        WHATSAPP_RESPONSE = `[OUTPUT]: ${response ? response : 'An error occurred'}`;
+
         await axios({
           method: 'POST',
           url: url,
