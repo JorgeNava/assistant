@@ -4,7 +4,7 @@ const whatsappRoutes = express.Router({ mergeParams: true });
 
 const { whatsappController } = require('../controller');
 
-whatsappRoutes.get('whatsapp/webhook', whatsappController.verifyWebhook);
-whatsappRoutes.post('whatsapp/webhook', whatsappController.receiveMessage);
+whatsappRoutes.get('webhook', whatsappController.verifyWebhook);
+whatsappRoutes.post('webhook', whatsappController.receiveMessage);
 
 module.exports = whatsappRoutes;
